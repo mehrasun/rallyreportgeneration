@@ -7,10 +7,12 @@ server = jenkins.Jenkins('http://10.22.226.66:32000')
 
 # List of Jenkins jobs to track
 jobs_name = [
-    'DFW_3-Compute/DFW_3-Compute-BFV',
-    'DFW_3-Compute/DFW_3-Compute-BFI',
+    'DFW3-Compute/DFW3-Compute-BFV',
+    'DFW3-Compute/DFW3-Compute-BFI',
     'SJC3-Compute/SJC3-Compute-BFV',
-    'SJC3-Compute/SJC3-Compute-BFI'
+    'SJC3-Compute/SJC3-Compute-BFI',
+    'IAD3-Compute/IAD3-Compute-BFI',
+    'IAD3-Compute/IAD3-Compute-BFV'
 ]
 
 def get_latest_build_on_date(job_name, selected_date):
@@ -72,26 +74,23 @@ def get_report_links(date):
             job_status = build_info["result"] if build_info["result"] else "IN PROGRESS"
 
             console_output = server.get_build_console_output(job_name, latest_build_number)
-            pattern = r"(Flex-[A-Za-z0-9_]+-Generate-HTML-Report) #(\d+) started\."
-
-            match = re.search(pattern, console_output)
-            if match:
-                HTML_job_name = match.group(1)
-                HTML_build_number = match.group(2)
-
-                # Fetch console output of the HTML report generation job
-                html_console_output = server.get_build_console_output(HTML_job_name, int(HTML_build_number))
-                html_pattern = r"Generated HTML Report - (http[^\s]+)"
-
-                report_match = re.search(html_pattern, html_console_output)
-                if report_match:
-                    report_url = report_match.group(1)
-                else:
-                    report_url = "Not Found"
+            # Look directly in the main job's console output for the report URL
+            html_pattern = r"Generated HTML Report - (http[^\s]+)"
+            report_match = re.search(html_pattern, console_output)
+            if report_match:
+                report_url = report_match.group(1)
             else:
                 report_url = "Not Found"
 
-            job_view = "Flex-SJC3" if "SJC3-Compute" in job_name else "Flex-DFW_3"
+            #job_view = "Flex-SJC3" if "SJC3-Compute" in job_name else "Flex-DFW3"
+            if "SJC3-Compute" in job_name:
+                job_view = "Flex-SJC3"
+            elif "DFW3-Compute" in job_name:
+                job_view = "Flex-DFW3"
+            elif "IAD3-Compute" in job_name:
+                job_view = "Flex-IAD3"
+            else:
+                job_view = "Unknown"
             parent_job, actual_job = job_name.split("/")
             build_console_url = f"http://10.22.226.66:32000/view/{job_view}/job/{parent_job}/job/{actual_job}/{latest_build_number}/console"
 
